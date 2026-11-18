@@ -17,7 +17,6 @@ Then visit <http://localhost:4173>.
 ## Present it
 
 - `→` / `←`: next or previous slide
-- Scroll down / up: travel to the next or previous floor of the tower
 - `N`: open or close the speaker notes
 - `O`: open the slide overview
 - `F` or `P`: enter or exit presentation mode and start the timer
@@ -25,8 +24,6 @@ Then visit <http://localhost:4173>.
 - `Home` / `End`: jump to the first or last slide
 
 The speaker notes are built into the site. Together, they run for roughly six minutes at a comfortable speaking pace.
-
-Each slide is presented as a floor of the “success tower.” Going forward descends through perspective floor rings and cloud bands; going backward climbs through the same space in reverse. The small elevator marker beside the navigation dots tracks the current level.
 
 ## Make it yours
 

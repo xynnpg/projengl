@@ -29,11 +29,6 @@
   const toast = document.querySelector("#toast");
   const balanceChips = [...document.querySelectorAll(".balance-chip")];
   const balanceResponse = document.querySelector("#balanceResponse");
-  const railElevator = document.querySelector("#railElevator");
-  const transitDirection = document.querySelector("#transitDirection");
-  const transitFloor = document.querySelector("#transitFloor");
-  const transitArrow = document.querySelector(".tower-depth-readout i");
-  const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const pad = (number) => String(number).padStart(2, "0");
   const parseDuration = (value) => {
@@ -49,9 +44,6 @@
   let timerHandle = null;
   let timerRunning = false;
   let timerHasStarted = false;
-  let transitionTimer = null;
-  let hasRendered = false;
-  let lastWheelNavigation = 0;
   const selectedBalance = new Set();
 
   function showToast(message) {
@@ -79,55 +71,14 @@
     notesText.textContent = slide.dataset.notes;
   }
 
-  function positionRailElevator(index = currentIndex) {
-    const activeDot = railDots[index];
-    if (!activeDot) return;
-    railElevator.style.top = `${activeDot.offsetTop}px`;
-  }
-
-  function clearTowerTransition() {
-    window.clearTimeout(transitionTimer);
-    transitionTimer = null;
-    document.body.classList.remove("tower-transit", "direction-down", "direction-up");
-    slides.forEach((slide) => slide.classList.remove("is-leaving", "is-entering"));
-  }
-
   function goToSlide(index, options = {}) {
     const nextIndex = Math.max(0, Math.min(slides.length - 1, index));
     if (!slides[nextIndex]) return;
-    if (hasRendered && nextIndex === currentIndex) return;
-
-    if (transitionTimer) clearTowerTransition();
-
-    const previousIndex = currentIndex;
-    const direction = nextIndex >= previousIndex ? "down" : "up";
-    const previousSlide = slides[previousIndex];
-    const nextSlide = slides[nextIndex];
-
-    slides.forEach((slide) => slide.classList.remove("is-leaving", "is-entering", "is-past"));
-
-    if (hasRendered) {
-      previousSlide.classList.remove("is-active");
-      previousSlide.classList.add("is-leaving");
-      nextSlide.classList.add("is-active", "is-entering");
-
-      document.body.classList.remove("tower-transit", "direction-down", "direction-up");
-      void document.body.offsetWidth;
-      document.body.classList.add("tower-transit", `direction-${direction}`);
-      transitDirection.textContent = direction === "down" ? "DESCENDING" : "ASCENDING";
-      transitFloor.textContent = `LEVEL ${pad(nextIndex + 1)}`;
-      transitArrow.textContent = direction === "down" ? "↓" : "↑";
-
-      transitionTimer = window.setTimeout(() => {
-        slides.forEach((slide) => slide.classList.remove("is-leaving", "is-entering"));
-        document.body.classList.remove("tower-transit", "direction-down", "direction-up");
-        transitionTimer = null;
-      }, reducedMotionQuery.matches ? 20 : 1080);
-    }
 
     slides.forEach((slide, slideIndex) => {
       const isActive = slideIndex === nextIndex;
-      if (!hasRendered) slide.classList.toggle("is-active", isActive);
+      slide.classList.toggle("is-active", isActive);
+      slide.classList.toggle("is-past", slideIndex < nextIndex);
       slide.setAttribute("aria-hidden", String(!isActive));
       slide.inert = !isActive;
     });
@@ -146,8 +97,6 @@
     nextButton.disabled = currentIndex === slides.length - 1;
     document.title = `${slides[currentIndex].dataset.title} | Success Stories`;
     renderNotes(currentIndex);
-    document.body.dataset.towerLevel = pad(currentIndex + 1);
-    positionRailElevator(currentIndex);
 
     if (!options.skipHash) setHash(currentIndex, options.replaceHash);
     const heading = slides[currentIndex].querySelector("h1, h2");
@@ -155,7 +104,6 @@
       heading.setAttribute("tabindex", "-1");
       heading.focus({ preventScroll: true });
     }
-    hasRendered = true;
   }
 
   function openNotes() {
@@ -392,36 +340,16 @@
     }
   });
 
-  window.addEventListener("wheel", (event) => {
-    if (Math.abs(event.deltaY) < 24) return;
-    if (document.querySelector("dialog[open]") || notesPanel.classList.contains("is-open")) return;
-
-    const activeSlide = slides[currentIndex];
-    const maxScroll = activeSlide.scrollHeight - activeSlide.clientHeight;
-    const movingDown = event.deltaY > 0;
-    if (movingDown && activeSlide.scrollTop < maxScroll - 3) return;
-    if (!movingDown && activeSlide.scrollTop > 3) return;
-    if (Date.now() - lastWheelNavigation < 1050) return;
-
-    const targetIndex = currentIndex + (movingDown ? 1 : -1);
-    if (targetIndex < 0 || targetIndex >= slides.length) return;
-    event.preventDefault();
-    lastWheelNavigation = Date.now();
-    goToSlide(targetIndex);
-  }, { passive: false });
-
   window.addEventListener("popstate", () => {
     const match = window.location.hash.match(/slide-(\d+)/);
     if (match) goToSlide(Number(match[1]) - 1, { skipHash: true });
   });
 
   document.addEventListener("fullscreenchange", updateFullscreenButton);
-  window.addEventListener("resize", () => positionRailElevator(currentIndex));
 
   const hashMatch = window.location.hash.match(/slide-(\d+)/);
   currentIndex = hashMatch ? Math.max(0, Math.min(slides.length - 1, Number(hashMatch[1]) - 1)) : 0;
   goToSlide(currentIndex, { replaceHash: true });
   updateTimerDisplay();
   updateFullscreenButton();
-  window.requestAnimationFrame(() => positionRailElevator(currentIndex));
 })();
